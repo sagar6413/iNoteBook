@@ -36,13 +36,14 @@ router.post(
     ).isLength({ min: 5, max: 20 }),
   ],
   async (req, res) => {
+    let success = false;
     //This is the callback function that will be called after the validations are done.
     //If the validations are successful, then the user will be created. If not, then the above mentioned errors will be returned.
 
     const errors = validationResult(req); //This is the result of the validations.
     //If there are errors, we will send the errors as a response.
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() }); //If there are errors, we will send the errors as a response.
+      return res.status(400).json({ success: success, errors: errors.array() }); //If there are errors, we will send the errors as a response.
     }
 
     try {
@@ -53,6 +54,7 @@ router.post(
       let user = await User.findOne({ email: req.body.email }); // findOne is a mongoose method that will return a user if the user exists.
       if (user) {
         return res.status(400).json({
+          success: success,
           errors: [{ msg: "User already exists with same email" }],
         });
       }
@@ -84,8 +86,8 @@ router.post(
 
       const authToken = jwt.sign(data, JWT_SECRET); //Here we are using jsonwebtoken to create a token. We will use the id of the user as the payload. We will use the JWT_SECRET to create the token. We will use the "jwtData" variable to store the token. The "jwtData" variable will be used to send the token as a response.
       console.log(authToken);
-
-      res.json(authToken); //Sending the token as a response. This is the token that will be used for authentication purposes. This token will be sent as a response.
+      success = true;
+      res.json({ success, authToken }); //Sending the token as a response. This is the token that will be used for authentication purposes. This token will be sent as a response.
     } catch (err) {
       //If there is an error, we will send the error as a response.
       console.error(err.message);
@@ -106,10 +108,11 @@ router.post(
     body("password", "Password cannot be empty").exists(), //Using express-validator to validate the password field.
   ],
   async (req, res) => {
+    let success = false;
     //This is the callback function that will be called after the validations are done. If the validations are successful, then the user will be authenticated. If not, then the above mentioned errors will be returned.
     const errors = validationResult(req); //This is the result of the validations.
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() }); //If there are errors, we will send the errors as a response.
+      return res.status(400).json({ success, errors: errors.array() }); //If there are errors, we will send the errors as a response.
     }
     const { email, password } = req.body; //This is the email and password which in input that will be used to authenticate the user.
     try {
@@ -118,6 +121,8 @@ router.post(
       if (!user) {
         //If the user does not exist, then we will send an error response.
         return res.status(400).json({
+          success,
+
           errors: [{ msg: "Please try to login with correct credentials" }],
         });
       }
@@ -125,6 +130,7 @@ router.post(
       if (!passwordCompare) {
         //If the password does not match, then we will send an error response.
         return res.status(400).json({
+          success,
           errors: [{ msg: "Please try to login with correct credentials" }],
         });
       }
@@ -136,7 +142,8 @@ router.post(
         },
       };
       const authToken = jwt.sign(data, JWT_SECRET); //here we are signing the token with the secret  that will be used to pass when the user logs in and this will help us to verify the user.
-      res.json(authToken); //Sending the token as a response. This is the token that will be used for authentication purposes. This token will be sent as a response.
+      success = true;
+      res.json({ success, authToken }); //Sending the token as a response. This is the token that will be used for authentication purposes. This token will be sent as a response.
     } catch (err) {
       //If there is an error, we will send the error as a response.
       console.error(err.message);
